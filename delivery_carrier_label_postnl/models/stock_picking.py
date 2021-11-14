@@ -177,3 +177,18 @@ class StockPicking(models.Model):
                 )
 
         raise reraise
+
+    def _postnl_get_tracking_link(self):
+        """
+        Tracking URL of PostNL shipment
+        :return: Tracking link string
+        :todo: Determine which countries do not use postal codes
+        """
+        self.ensure_one()
+
+        return ("https://tracking.postnl.nl/track-and-trace/"
+                "%(tracking_reference)s-%(country_code)s-%(postal_code)s") % {
+            "tracking_reference": self.carrier_tracking_ref,
+            "country_code": self.partner_id.country_id.code,
+            "postal_code": self.partner_id.zip,
+        }

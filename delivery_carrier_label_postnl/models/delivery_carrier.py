@@ -15,4 +15,4 @@ class DeliveryCarrier(models.Model):
         return pickings._postnl_send()
 
     def postnl_get_tracking_link(self, picking):
-        raise NotImplementedError()
+        return picking._postnl_get_tracking_link()

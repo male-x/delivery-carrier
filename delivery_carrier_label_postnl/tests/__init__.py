@@ -1,6 +1,4 @@
 # Copyright 2021 Alexander Makarychev
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl).
 
-from . import carrier_account
-from . import delivery_carrier
-from . import stock_picking
+from . import test_delivery_carrier_label_postnl

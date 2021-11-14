@@ -13,9 +13,14 @@
     'auto_install': False,
     "license": "AGPL-3",
     "application": False,
-    "depends": ["base_delivery_carrier_label"],
+    "depends": [
+        "base_address_extended",
+        "base_delivery_carrier_label",
+    ],
     "data": [
         "data/delivery_carrier_data.xml",
+        "data/ir_config_parameter_data.xml",
+        "views/carrier_account.xml",
     ],
     "demo": [],
 }

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+
+    <record id="view_carrier_account_form" model="ir.ui.view">
+        <field
+            name="inherit_id"
+            ref="base_delivery_carrier_label.carrier_account_view_form"
+        />
+        <field name="model">carrier.account</field>
+        <field name="arch" type="xml">
+            <field name="account" position="before">
+                <field name="is_postnl" invisible="1"/>
+                <field
+                    name="postnl_api_key"
+                    attrs="{'invisible': [('is_postnl', '=', False)], 'required': [('is_postnl', '=', True)]}"
+                />
+                <field
+                    name="postnl_barcode_type"
+                    attrs="{'invisible': [('is_postnl', '=', False)], 'required': [('is_postnl', '=', True)]}"
+                />
+                <field
+                    name="postnl_collection_location"
+                    attrs="{'invisible': [('is_postnl', '=', False)], 'required': [('is_postnl', '=', True)]}"
+                />
+                <field
+                    name="postnl_customer_code"
+                    attrs="{'invisible': [('is_postnl', '=', False)], 'required': [('is_postnl', '=', True)]}"
+                />
+                <field
+                    name="postnl_customer_number"
+                    attrs="{'invisible': [('is_postnl', '=', False)], 'required': [('is_postnl', '=', True)]}"
+                />
+            </field>
+        </field>
+    </record>
+
+</odoo>

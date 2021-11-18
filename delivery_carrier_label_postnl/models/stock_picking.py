@@ -29,13 +29,25 @@ class StockPicking(models.Model):
 
         :return: A list of dictionaries suitable for delivery.carrier#send_shipping
         """
-        return [picking._postnl_send_shipment() for picking in self]
+        result = []
+        for picking in self:
+            carrier_account = picking._postnl_carrier_account()
+            request_headers = {
+                "apikey": carrier_account.postnl_api_key,
+                "accept": "application/json",
+                "content-type": "application/json",
+            }
+            barcode = picking._postnl_request_barcode(carrier_account, request_headers)
+            result.append(picking._postnl_send_shipment(carrier_account, request_headers, barcode))
+        return result
 
     def _postnl_request_barcode(self, carrier_account, request_headers):
         """
         Send barcode API request
         :see: https://developer.postnl.nl/browse-apis/send-and-track/barcode-webservice/documentation-soap/
         :version: Interface version 1_1
+        :return: Barcode string
+        :raise: odoo.exceptions.UserError|KeyError in case of failed request
         """
         self.ensure_one()
 
@@ -52,26 +64,20 @@ class StockPicking(models.Model):
         ).json()
 
         try:
-            return response["Barcode"]
-        except KeyError:
-            self._postnl_raise_error(POSTNL_REQUEST_TYPE_BARCODE, response, KeyError)
+            result = response["Barcode"]
+        except Exception as exception:
+            raise self._postnl_error(POSTNL_REQUEST_TYPE_BARCODE, response, exception)
 
-    def _postnl_send_shipment(self):
+        return result
+
+    def _postnl_send_shipment(self, carrier_account, request_headers, barcode):
         """
         Send shipment label API request
         :see: https://developer.postnl.nl/browse-apis/send-and-track/labelling-webservice/documentation/
         :version: Interface version 2_2
+        :return: Dictionary suitable for delivery.carrier#send_shipping
         """
         self.ensure_one()
-
-        carrier_account = self._postnl_carrier_account()
-        request_headers = {
-            "apikey": carrier_account.postnl_api_key,
-            "accept": "application/json",
-            "content-type": "application/json",
-        }
-
-        barcode = self._postnl_request_barcode(carrier_account, request_headers)
 
         request_body = {
             "Customer": {
@@ -123,7 +129,7 @@ class StockPicking(models.Model):
 
         try:
             shipment_data = response["ResponseShipments"][0]
-            return {
+            result = {
                 "exact_price": 0,
                 "tracking_number": shipment_data["Barcode"],
                 "labels": [{
@@ -132,8 +138,10 @@ class StockPicking(models.Model):
                     "file_type": "pdf",
                 } for label in shipment_data["Labels"]],
             }
-        except KeyError:
-            self._postnl_raise_error(POSTNL_REQUEST_TYPE_LABEL, response, KeyError)
+        except Exception as exception:
+            raise self._postnl_error(POSTNL_REQUEST_TYPE_LABEL, response, exception)
+
+        return result
 
     def _postnl_request_url(self, request_type):
         return self.env["ir.config_parameter"].sudo().get_param(
@@ -168,11 +176,11 @@ class StockPicking(models.Model):
 
         return carrier_account
 
-    def _postnl_raise_error(self, request_type, response, reraise):
+    def _postnl_error(self, request_type, response, reraise):
         """Try to extract error message from invalid response"""
         for item in response:
             if "ErrorMsg" in item:
-                raise UserError(
+                return UserError(
                     _("PostNL %(request_type)s API exception: %(error_number)d %(error_msg)s")
                     % {
                         "request_type": request_type,
@@ -181,7 +189,7 @@ class StockPicking(models.Model):
                     }
                 )
 
-        raise reraise
+        return reraise
 
     def _postnl_get_tracking_link(self):
         """
@@ -191,8 +199,12 @@ class StockPicking(models.Model):
         """
         self.ensure_one()
 
-        return ("https://tracking.postnl.nl/track-and-trace/"
-                "%(tracking_reference)s-%(country_code)s-%(postal_code)s") % {
+        return (
+            "%(tracking_url)s%(tracking_reference)s-%(country_code)s-%(postal_code)s"
+        ) % {
+            "tracking_url": self.env["ir.config_parameter"].sudo().get_param(
+                "delivery_carrier_label_postnl.tracking_url"
+            ),
             "tracking_reference": self.carrier_tracking_ref,
             "country_code": self.partner_id.country_id.code,
             "postal_code": self.partner_id.zip,

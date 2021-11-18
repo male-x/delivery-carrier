@@ -18,4 +18,9 @@
         <field name="value">https://api.postnl.nl/shipment/v2_2/label</field>
     </record>
 
+    <record id="tracking_url" model="ir.config_parameter">
+        <field name="key">delivery_carrier_label_postnl.tracking_url</field>
+        <field name="value">https://tracking.postnl.nl/track-and-trace/</field>
+    </record>
+
 </odoo>

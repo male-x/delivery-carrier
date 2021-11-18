@@ -17,6 +17,11 @@ POSTNL_REQUEST_TYPE_LABEL = "label"
 class StockPicking(models.Model):
     _inherit = "stock.picking"
 
+    def action_generate_carrier_label(self):
+        # Labels for PostNL pickings are generated during send action
+        filtered = self.filtered(lambda x: x.carrier_id.delivery_type != DELIVERY_TYPE_POSTNL)
+        return super(StockPicking, filtered).action_generate_carrier_label()
+
     def _postnl_send(self):
         """
         Send shipment of the picking to PostNL,
